@@ -1,3 +1,4 @@
 .vscode/*
 crazyflie-lib-python/
+crazyflie-clients-python/
 __pycache__/
