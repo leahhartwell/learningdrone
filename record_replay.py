@@ -2,6 +2,8 @@ import time
 import logging
 import keyboard
 import math
+import csv
+import datetime
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
@@ -14,7 +16,8 @@ uri = "radio://0/80/2M/E7E7E7E7E7"
 logging.basicConfig(level=logging.ERROR)
 
 POSITION_LOG_INTERVAL_MS = 100
-kinematics_log = []
+record_kinematics_log = []
+replay_kinematics_log = []
 
 # Define the log configuration for recording kinematic data
 def log_kin_config():
@@ -48,7 +51,7 @@ def log_record_kin_callback(timestamp, data, logconf):
         data["stateEstimate.ay"],
         data["stateEstimate.az"],
     )
-    kinematics_log.append((timestamp, x, y, z, vx, vy, vz, ax, ay, az))
+    record_kinematics_log.append((timestamp, x, y, z, vx, vy, vz, ax, ay, az))
     print(
         f"Time: {timestamp}, Position: ({x}, {y}, {z}), Velocity: ({vx}, {vy}, {vz}), Acceleration: ({ax}, {ay}, {az})"
     )
@@ -71,6 +74,7 @@ def log_replay_kin_callback(timestamp, data, logconf):
         data["stateEstimate.ay"],
         data["stateEstimate.az"],
     )
+    replay_kinematics_log.append((timestamp, x, y, z, vx, vy, vz, ax, ay, az))
     print(
         f"Time: {timestamp}, Position: ({x}, {y}, {z}), Velocity: ({vx}, {vy}, {vz}), Acceleration: ({ax}, {ay}, {az})"
     )
@@ -98,9 +102,28 @@ def log_kin_async(logconf, scf, mode, stop_logging=False):
         logconf.stop()
 
 
+def save_logs_to_csv(record_arr, replay_arr):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"kinematics_log_{timestamp}.csv"
+
+    with open(filename, "w", newline="") as csvfile:
+        csv_writer = csv.writer(csvfile)
+        csv_writer.writerow(
+            ["timestamp", "x", "y", "z", "vx", "vy", "vz", "ax", "ay", "az"]
+        )
+
+        for row in record_arr:
+            csv_writer.writerow(row)
+
+        csv_writer.writerow([])
+
+        for row in replay_arr:
+            csv_writer.writerow(row)
+
+
 if __name__ == "__main__":
 
-    # Connect to the Crazyflie and set up a SyncCrazyflie object
+    # Connect to Crazyflie and set up a SyncCrazyflie object
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache="./cache")) as scf:
 
         # Create a log configuration for recording and start recording
@@ -114,9 +137,9 @@ if __name__ == "__main__":
         # Use the MotionCommander to move the Crazyflie based on the recorded kinematic data
         with MotionCommander(scf) as mc:
             # Iterate through the kinematics_log and calculate distances and velocities
-            for i in range(1, len(kinematics_log)):
-                t1, x1, y1, z1 = kinematics_log[i - 1][:4]
-                t2, x2, y2, z2 = kinematics_log[i][:4]
+            for i in range(1, len(record_kinematics_log)):
+                t1, x1, y1, z1 = record_kinematics_log[i - 1][:4]
+                t2, x2, y2, z2 = record_kinematics_log[i][:4]
                 dt = (t2 - t1) / 1000.0
                 dx = x2 - x1
                 dy = y2 - y1
@@ -129,3 +152,5 @@ if __name__ == "__main__":
 
         # Stop logging and disconnect from the Crazyflie
         log_kin_async(log_replay_config, scf, "replay", stop_logging=True)
+
+    save_logs_to_csv(record_kinematics_log, replay_kinematics_log)
