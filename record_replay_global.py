@@ -9,6 +9,7 @@ from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
+from cflib.positioning.position_hl_commander import PositionHlCommander
 
 # URI to the Crazyflie to connect to
 uri = "radio://0/79/2M/E7E7E7E7E6"
@@ -150,31 +151,17 @@ if __name__ == "__main__":
         # keyboard.read_event()
 
         # Use the MotionCommander to move the Crazyflie based on the recorded kinematic data
-        with MotionCommander(scf) as mc:
+        with PositionHlCommander(
+            scf, controller=PositionHlCommander.CONTROLLER_PID
+        ) as mc:
             # Iterate through the kinematics_log and calculate distances and velocities
+            mc.go_to(0.0, 0.0, 0.5)
+            time.sleep(0.1)
+            mc.go_to(0.01, 0.01, 0.5)
             for i in range(1, len(record_kinematics_log)):
-                t1, x1, y1, z1 = record_kinematics_log[i - 1][:4]
-                t2, x2, y2, z2 = record_kinematics_log[i][:4]
-                dt = (t2 - t1) / 1000.0
-                dx = x2 - x1
-                dy = y2 - y1
-                dz = z2 - z1
-                try:
-                    v = math.sqrt(dx**2 + dy**2 + dz**2) / dt
-                except ZeroDivisionError:
-                    v = 0
-
-                if v != 0:
-                    # Move Crazyflie using the calculated distances and velocities
-                    mc.move_distance(dx, dy, dz, v)
-                else:
-                    print("Skipped moving due to zero velocity...")
-
-                # Sleep for the duration of the move or a short period if velocity is zero
-                if v != 0:
-                    time.sleep(dt)
-                else:
-                    time.sleep(0.01)  # Sleep for a short period if velocity is zero
+                x, y, z = record_kinematics_log[i - 1][1:4]
+                mc.go_to(x, y, z)
+                time.sleep(0.01)  # Sleep for a short period if velocity is zero
 
         # Stop logging and disconnect from the Crazyflie
         log_kin_async(log_replay_config, scf, "replay", stop_logging=True)
