@@ -12,7 +12,7 @@ from cflib.positioning.motion_commander import MotionCommander
 from cflib.positioning.position_hl_commander import PositionHlCommander
 
 # URI to the Crazyflie to connect to
-uri = "radio://0/79/2M/E7E7E7E7E6"
+uri = "radio://0/80/2M/E7E7E7E7E7"
 
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
@@ -27,12 +27,6 @@ def log_kin_config():
     log_config.add_variable("stateEstimate.x", "float")
     log_config.add_variable("stateEstimate.y", "float")
     log_config.add_variable("stateEstimate.z", "float")
-    # log_config.add_variable("stateEstimate.vx", "float")
-    # log_config.add_variable("stateEstimate.vy", "float")
-    # log_config.add_variable("stateEstimate.vz", "float")
-    # log_config.add_variable("stateEstimate.ax", "float")
-    # log_config.add_variable("stateEstimate.ay", "float")
-    # log_config.add_variable("stateEstimate.az", "float")
     return log_config
 
 
@@ -43,22 +37,7 @@ def log_record_kin_callback(timestamp, data, logconf):
         data["stateEstimate.y"],
         data["stateEstimate.z"],
     )
-    # vx, vy, vz = (
-    #     data["stateEstimate.vx"],
-    #     data["stateEstimate.vy"],
-    #     data["stateEstimate.vz"],
-    # )
-    # ax, ay, az = (
-    #     data["stateEstimate.ax"],
-    #     data["stateEstimate.ay"],
-    #     data["stateEstimate.az"],
-    # )
-    # record_kinematics_log.append((timestamp, x, y, z, vx, vy, vz, ax, ay, az))
     record_kinematics_log.append((timestamp, x, y, z))
-    # print(
-    #     f"Time: {timestamp}, Position: ({x}, {y}, {z}), Velocity: ({vx}, {vy}, {vz}), Acceleration: ({ax}, {ay}, {az})"
-    # )
-    # print(f"Time: {timestamp}, Position: ({x}, {y}, {z})")
 
 
 # Callback function for replaying kinematic data
@@ -68,22 +47,7 @@ def log_replay_kin_callback(timestamp, data, logconf):
         data["stateEstimate.y"],
         data["stateEstimate.z"],
     )
-    # vx, vy, vz = (
-    #     data["stateEstimate.vx"],
-    #     data["stateEstimate.vy"],
-    #     data["stateEstimate.vz"],
-    # )
-    # ax, ay, az = (
-    #     data["stateEstimate.ax"],
-    #     data["stateEstimate.ay"],
-    #     data["stateEstimate.az"],
-    # )
-    # record_kinematics_log.append((timestamp, x, y, z, vx, vy, vz, ax, ay, az))
     replay_kinematics_log.append((timestamp, x, y, z))
-    # print(
-    #     f"Time: {timestamp}, Position: ({x}, {y}, {z}), Velocity: ({vx}, {vy}, {vz}), Acceleration: ({ax}, {ay}, {az})"
-    # )
-    # print(f"Time: {timestamp}, Position: ({x}, {y}, {z})")
 
 
 # Function to handle logging of kinematic data asynchronously
@@ -126,7 +90,7 @@ def save_logs_to_csv(record_arr, replay_arr):
 
         csv_writer.writerow([])
 
-        csv_writer.writerow(["Record"])
+        csv_writer.writerow(["Replay"])
         for row in replay_arr:
             csv_writer.writerow(row)
 
@@ -161,7 +125,6 @@ if __name__ == "__main__":
             for i in range(1, len(record_kinematics_log)):
                 x, y, z = record_kinematics_log[i - 1][1:4]
                 mc.go_to(x, y, z)
-                time.sleep(0.01)  # Sleep for a short period if velocity is zero
 
         # Stop logging and disconnect from the Crazyflie
         log_kin_async(log_replay_config, scf, "replay", stop_logging=True)
