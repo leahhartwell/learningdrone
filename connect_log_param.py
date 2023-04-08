@@ -67,7 +67,6 @@ def simple_connect_sync():
     time.sleep(3)
     print("Now I will disconnect :'(")
 
-def kin_
 
 if __name__ == "__main__":
     # Initialize the low-level drivers
@@ -82,7 +81,7 @@ if __name__ == "__main__":
     name = "estimator"
 
     with SyncCrazyflie(uri, cf=Crazyflie(rw_cache="./cache")) as scf:
-        simple_connect()
+        simple_connect_sync()
         # simple_log_sync(scf, lg_stab)
         # simple_log_async(scf, lg_stab)
         # simple_param_async(scf, group, name)
